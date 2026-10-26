@@ -1,0 +1,4 @@
+<?php
+namespace App\Http\Controllers;
+use App\Models\User; use Illuminate\Http\Request; use Illuminate\Validation\Rule; use Illuminate\Support\Facades\Hash;
+class UserController extends Controller { public function index(){ $users=User::orderByDesc('id')->paginate(10); return view('users.index',compact('users')); } public function store(Request $r){$d=$r->validate(['name'=>['required','string','max:100'],'username'=>['required','string','max:50','unique:users,username'],'email'=>['required','email','max:255','unique:users,email'],'password'=>['required','string','min:10'],'role'=>['required',Rule::in(['admin','staff'])]]);$d['password']=Hash::make($d['password']);User::create($d);return redirect()->route('users.index')->with('success','Pengguna berhasil dibuat.');} }

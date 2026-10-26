@@ -1,0 +1,7 @@
+<?php
+namespace App\Http\Controllers;
+use App\Models\Product; use App\Models\StockMovement; use Illuminate\Http\Request; use Illuminate\Support\Facades\DB; use Illuminate\Validation\ValidationException;
+class StockController extends Controller {
+ public function index(){ $products=Product::orderBy('name')->get(); $movements=StockMovement::with(['product','user'])->orderByDesc('created_at')->paginate(20); return view('stock.index',compact('products','movements')); }
+ public function store(Request $request){ $data=$request->validate(['product_id'=>['required','exists:products,id'],'type'=>['required','in:IN,OUT'],'quantity'=>['required','integer','min:1'],'note'=>['nullable','string','max:255']]); DB::transaction(function()use($data,$request){$product=Product::whereKey($data['product_id'])->lockForUpdate()->firstOrFail(); if($data['type']==='OUT'&&$product->stock<$data['quantity']) throw ValidationException::withMessages(['quantity'=>'Stok tidak mencukupi untuk transaksi keluar.']); $product->stock += $data['type']==='IN'?$data['quantity']:-$data['quantity']; $product->save(); StockMovement::create(['product_id'=>$product->id,'user_id'=>$request->user()->id,'type'=>$data['type'],'quantity'=>$data['quantity'],'note'=>$data['note']??null,'created_at'=>now()]); }); return redirect()->route('stock.index')->with('success','Transaksi stok berhasil disimpan.'); }
+}
